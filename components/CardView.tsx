@@ -344,15 +344,28 @@ function FinalStage({
   photos: { url: string; caption: string }[];
   theme: CardTheme;
 }) {
-  const layout = useMemo(
-    () =>
-      photos.map((_, i) => ({
-        top: 4 + seededRandom(i * 3.1 + 1) * 82,
-        left: 2 + seededRandom(i * 5.7 + 2) * 84,
-        rotate: (seededRandom(i * 2.3 + 3) - 0.5) * 40,
-      })),
-    [photos]
-  );
+  // Reparte las fotos en una cuadrícula invisible (con un poco de
+  // desorden dentro de cada celda) en vez de posiciones puramente
+  // aleatorias, para garantizar que cubran toda la pantalla en vez de
+  // agruparse por casualidad en una misma zona.
+  const layout = useMemo(() => {
+    const count = photos.length;
+    if (count === 0) return [];
+    const cols = Math.max(1, Math.ceil(Math.sqrt(count * 1.7)));
+    const rows = Math.max(1, Math.ceil(count / cols));
+    const cellW = 100 / cols;
+    const cellH = 100 / rows;
+    return photos.map((_, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const jitterX = (seededRandom(i * 5.7 + 2) - 0.5) * cellW * 0.7;
+      const jitterY = (seededRandom(i * 3.1 + 1) - 0.5) * cellH * 0.7;
+      const top = Math.min(95, Math.max(4, row * cellH + cellH / 2 + jitterY));
+      const left = Math.min(95, Math.max(4, col * cellW + cellW / 2 + jitterX));
+      const rotate = (seededRandom(i * 2.3 + 3) - 0.5) * 40;
+      return { top, left, rotate };
+    });
+  }, [photos]);
 
   return (
     <div className="relative min-h-[100dvh] px-4 py-10">
@@ -377,7 +390,7 @@ function FinalStage({
           style={{
             top: `${layout[i].top}%`,
             left: `${layout[i].left}%`,
-            transform: `rotate(${layout[i].rotate}deg)`,
+            transform: `translate(-50%, -50%) rotate(${layout[i].rotate}deg)`,
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -394,11 +407,11 @@ function FinalStage({
         </figure>
       ))}
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-5rem)] max-w-md flex-col items-center justify-center text-center">
-        <div className="rounded-2xl bg-white/90 px-6 py-8 shadow-xl backdrop-blur sm:px-10">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-5rem)] max-w-2xl flex-col items-center justify-center text-center">
+        <div className="rounded-2xl bg-white/90 px-8 py-10 shadow-xl backdrop-blur sm:px-14 sm:py-14">
           {title && (
             <h2
-              className="text-3xl"
+              className="text-4xl sm:text-5xl"
               style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
             >
               {title}
@@ -406,7 +419,7 @@ function FinalStage({
           )}
           {message && (
             <p
-              className="mt-4 whitespace-pre-line leading-relaxed"
+              className="mt-5 text-lg leading-relaxed whitespace-pre-line sm:text-xl"
               style={{ color: theme.text }}
             >
               {message}
@@ -414,7 +427,7 @@ function FinalStage({
           )}
           {closing && (
             <p
-              className="mt-5 text-3xl"
+              className="mt-6 text-4xl sm:text-5xl"
               style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
             >
               {closing}
