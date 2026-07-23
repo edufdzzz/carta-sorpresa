@@ -232,7 +232,7 @@ function QuestionStage({
   onDone: () => void;
 }) {
   const [escapes, setEscapes] = useState(0);
-  const [noPos, setNoPos] = useState({ top: 56, left: 64 });
+  const [noPos, setNoPos] = useState({ top: 55, left: 60 });
   const [finished, setFinished] = useState(false);
   const triggeredRef = useRef(false);
 
@@ -252,18 +252,20 @@ function QuestionStage({
     });
   }
 
+  // Antes del primer intento con "No", los dos botones viven adentro de
+  // la tarjeta como un formulario normal. En cuanto alguien toca "No",
+  // ese botón escapa de la tarjeta y empieza a moverse libremente, y el
+  // "Sí" empieza a crecer y recentrarse en la pantalla.
+  const chasing = escapes > 0;
   const progress = escapes / MAX_ESCAPES;
   const yesScale = 1 + progress * 9;
-  // El "Sí" arranca junto al "No" y se va recentrando en la pantalla a
-  // medida que crece, para que al llegar al tamaño máximo quede
-  // perfectamente centrado en vez de gigante pero descuadrado.
-  const yesTop = 56 + (50 - 56) * progress;
+  const yesTop = 62 + (50 - 62) * progress;
   const yesLeft = 42 + (50 - 42) * progress;
 
   return (
-    <div className="relative z-10 min-h-[100dvh] overflow-hidden px-4">
+    <div className="relative z-10 flex min-h-[100dvh] items-center justify-center overflow-hidden px-4">
       <div
-        className="absolute left-1/2 top-[18%] w-full max-w-md -translate-x-1/2 rounded-2xl bg-white/95 px-6 py-8 text-center shadow-xl backdrop-blur transition-opacity duration-500"
+        className="w-full max-w-md rounded-2xl bg-white/95 px-6 py-8 text-center shadow-xl backdrop-blur transition-opacity duration-500"
         style={{ opacity: finished ? 0 : 1 }}
       >
         <span className="block text-4xl">💘</span>
@@ -273,22 +275,44 @@ function QuestionStage({
         >
           {title}
         </h2>
+
+        {!chasing && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={onDone}
+              className="rounded-full px-6 py-3 font-semibold text-white shadow-md transition hover:scale-105"
+              style={{ background: theme.accent }}
+            >
+              {yesLabel}
+            </button>
+            <button
+              onMouseEnter={evadeNo}
+              onTouchStart={evadeNo}
+              onClick={evadeNo}
+              className="rounded-full border border-neutral-200 px-5 py-2.5 font-medium text-neutral-500 transition hover:bg-neutral-50"
+            >
+              {noLabel}
+            </button>
+          </div>
+        )}
       </div>
 
-      <button
-        onClick={onDone}
-        className="fixed z-20 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-all duration-500 ease-out"
-        style={{
-          background: theme.accent,
-          top: `${yesTop}%`,
-          left: `${yesLeft}%`,
-          transform: `translate(-50%, -50%) scale(${yesScale})`,
-        }}
-      >
-        {yesLabel}
-      </button>
+      {chasing && (
+        <button
+          onClick={onDone}
+          className="fixed z-20 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-all duration-500 ease-out"
+          style={{
+            background: theme.accent,
+            top: `${yesTop}%`,
+            left: `${yesLeft}%`,
+            transform: `translate(-50%, -50%) scale(${yesScale})`,
+          }}
+        >
+          {yesLabel}
+        </button>
+      )}
 
-      {!finished && (
+      {chasing && !finished && (
         <button
           onMouseEnter={evadeNo}
           onTouchStart={evadeNo}
