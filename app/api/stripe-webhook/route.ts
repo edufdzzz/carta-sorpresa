@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     if (userId) {
       const supabase = createAdminClient();
-      await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({
           is_unlocked: true,
@@ -39,6 +39,11 @@ export async function POST(request: Request) {
             typeof session.customer === "string" ? session.customer : null,
         })
         .eq("id", userId);
+
+      if (error) {
+        console.error("Failed to unlock profile after payment:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     }
   }
 
