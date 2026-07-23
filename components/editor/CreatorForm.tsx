@@ -316,19 +316,24 @@ export default function CreatorForm({
           <p className="mb-2 text-sm font-medium text-neutral-500">
             Vista previa en vivo
           </p>
-          <div className="h-full overflow-hidden rounded-2xl border border-neutral-200 shadow-inner">
-            <CardView
-              data={{
-                title,
-                intro_message: introMessage,
-                letter_message: letterMessage,
-                theme,
-                photos: photos.map((p) => ({
-                  url: p.previewUrl,
-                  caption: p.caption,
-                })),
-              }}
-            />
+          <div className="flex h-full gap-3">
+            <div className="h-full flex-1 overflow-hidden rounded-2xl border border-neutral-200 shadow-inner">
+              <CardView
+                data={{
+                  title,
+                  intro_message: introMessage,
+                  letter_message: letterMessage,
+                  theme,
+                  photos: photos.map((p) => ({
+                    url: p.previewUrl,
+                    caption: p.caption,
+                  })),
+                }}
+              />
+            </div>
+            <div className="hidden w-28 shrink-0 xl:block">
+              <AdBanner orientation="vertical" />
+            </div>
           </div>
         </div>
       </div>
