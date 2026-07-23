@@ -232,7 +232,7 @@ function QuestionStage({
   onDone: () => void;
 }) {
   const [escapes, setEscapes] = useState(0);
-  const [noPos, setNoPos] = useState({ top: 62, left: 66 });
+  const [noPos, setNoPos] = useState({ top: 56, left: 64 });
   const [finished, setFinished] = useState(false);
   const triggeredRef = useRef(false);
 
@@ -240,17 +240,15 @@ function QuestionStage({
     if (escapes >= MAX_ESCAPES && !triggeredRef.current) {
       triggeredRef.current = true;
       setFinished(true);
-      const t = window.setTimeout(onDone, 900);
-      return () => window.clearTimeout(t);
     }
-  }, [escapes, onDone]);
+  }, [escapes]);
 
   function evadeNo() {
     if (finished) return;
     setEscapes((e) => Math.min(e + 1, MAX_ESCAPES));
     setNoPos({
-      top: 12 + seededRandom(escapes * 7 + 1) * 74,
-      left: 10 + seededRandom(escapes * 13 + 3) * 76,
+      top: 15 + seededRandom(escapes * 7 + 1) * 70,
+      left: 12 + seededRandom(escapes * 13 + 3) * 72,
     });
   }
 
@@ -258,24 +256,26 @@ function QuestionStage({
 
   return (
     <div className="relative z-10 min-h-[100dvh] overflow-hidden px-4">
-      <h2
-        className="absolute left-1/2 top-[14%] w-full max-w-md -translate-x-1/2 px-4 text-center text-3xl transition-opacity duration-500"
-        style={{
-          fontFamily: "var(--font-cursive)",
-          color: theme.accent,
-          opacity: finished ? 0 : 1,
-        }}
+      <div
+        className="absolute left-1/2 top-[18%] w-full max-w-md -translate-x-1/2 space-y-3 px-4 text-center transition-opacity duration-500"
+        style={{ opacity: finished ? 0 : 1 }}
       >
-        {title}
-      </h2>
+        <span className="block text-4xl">💘</span>
+        <h2
+          className="text-3xl"
+          style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
+        >
+          {title}
+        </h2>
+      </div>
 
       <button
         onClick={onDone}
         className="fixed z-20 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-transform duration-500 ease-out"
         style={{
           background: theme.accent,
-          top: "58%",
-          left: "50%",
+          top: "56%",
+          left: "42%",
           transform: `translate(-50%, -50%) scale(${yesScale})`,
         }}
       >
@@ -287,7 +287,7 @@ function QuestionStage({
           onMouseEnter={evadeNo}
           onTouchStart={evadeNo}
           onClick={evadeNo}
-          className="fixed z-20 rounded-full bg-white px-5 py-2.5 font-medium text-neutral-500 shadow transition-all duration-300 ease-out"
+          className="fixed z-20 rounded-full bg-white px-5 py-2.5 font-medium text-neutral-500 shadow-md transition-all duration-300 ease-out"
           style={{
             top: `${noPos.top}%`,
             left: `${noPos.left}%`,
