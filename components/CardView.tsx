@@ -107,7 +107,7 @@ function FloatingHearts({ accent }: { accent: string }) {
           key={i}
           className="absolute bottom-0 text-2xl select-none"
           style={{
-            left: `${(i * 97) % 100}%`,
+            left: `${seededRandom(i * 11.3 + 5) * 94}%`,
             color: accent,
             animation: `float-heart ${8 + (i % 5)}s linear ${i * 0.8}s infinite`,
           }}
