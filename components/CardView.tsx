@@ -129,28 +129,33 @@ function EnvelopeStage({
   accent: string;
 }) {
   return (
-    <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center gap-6 px-4">
-      <div className="relative h-36 w-52">
+    <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center gap-8 px-4">
+      <div
+        className="relative w-full max-w-sm transition-all duration-700 ease-out"
+        style={{
+          aspectRatio: "3 / 2",
+          opacity: opening ? 0 : 1,
+          transform: opening ? "translateY(-24px) scale(1.03)" : "translateY(0) scale(1)",
+        }}
+      >
         <div
-          className="absolute inset-x-0 bottom-0 h-full rounded-lg shadow-lg transition-opacity duration-500"
-          style={{ background: accent, opacity: opening ? 0.15 : 0.3 }}
+          className="absolute inset-0 rounded-2xl shadow-xl"
+          style={{ background: accent, opacity: 0.55 }}
         />
         <div
-          className="absolute left-1/2 top-1/2 flex h-16 w-40 -translate-x-1/2 items-center justify-center rounded bg-white text-3xl shadow transition-all duration-700 ease-out"
+          className="absolute inset-x-0 top-0"
           style={{
-            transform: opening
-              ? "translate(-50%, -160%) scale(1.05)"
-              : "translate(-50%, -50%) scale(1)",
-            opacity: opening ? 0 : 1,
+            height: "62%",
+            background: accent,
+            opacity: 0.85,
+            clipPath: "polygon(0 0, 100% 0, 50% 100%)",
           }}
-        >
-          💌
-        </div>
+        />
       </div>
       {!opening && (
         <button
           onClick={onOpen}
-          className="rounded-full px-6 py-3 font-medium text-white shadow-md transition hover:scale-105"
+          className="rounded-full px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-md transition hover:scale-105"
           style={{ background: accent }}
         >
           Abrir carta 💌
@@ -179,7 +184,7 @@ function SlideStage({
   return (
     <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-4">
       <div
-        className="max-w-md space-y-5 text-center transition-all duration-500"
+        className="w-full max-w-md space-y-5 rounded-2xl bg-white/95 px-6 py-10 text-center shadow-xl backdrop-blur transition-all duration-500 sm:px-10"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? "translateY(0)" : "translateY(16px)",
@@ -194,7 +199,12 @@ function SlideStage({
           </h1>
         )}
         {slide.message && (
-          <p className="whitespace-pre-line leading-relaxed">{slide.message}</p>
+          <p
+            className="whitespace-pre-line leading-relaxed"
+            style={{ color: theme.text }}
+          >
+            {slide.message}
+          </p>
         )}
         <button
           onClick={onNext}
