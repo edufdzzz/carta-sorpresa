@@ -14,6 +14,7 @@ import {
   type CardSlide,
   type CardTheme,
 } from "@/lib/types";
+import Link from "next/link";
 import CardView from "@/components/CardView";
 import AdBanner from "@/components/AdBanner";
 
@@ -190,6 +191,12 @@ export default function CreatorForm({
           >
             Crear otra carta
           </button>
+          <Link
+            href="/mis-cartas"
+            className="block text-sm text-neutral-500 hover:underline"
+          >
+            Ver todas mis cartas
+          </Link>
         </div>
       </main>
     );
@@ -199,15 +206,23 @@ export default function CreatorForm({
     <main className="min-h-[100dvh] bg-rose-50 px-4 py-8">
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-2">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-rose-600">
-              Crea tu carta
-            </h1>
-            <p className="text-sm text-neutral-500">
-              {isUnlocked
-                ? "Tienes cartas ilimitadas desbloqueadas."
-                : `Has creado ${cardsCreated} de ${FREE_CARD_LIMIT} cartas gratis.`}
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold text-rose-600">
+                Crea tu carta
+              </h1>
+              <p className="text-sm text-neutral-500">
+                {isUnlocked
+                  ? "Tienes cartas ilimitadas desbloqueadas."
+                  : `Has creado ${cardsCreated} de ${FREE_CARD_LIMIT} cartas gratis.`}
+              </p>
+            </div>
+            <Link
+              href="/mis-cartas"
+              className="shrink-0 rounded-full border border-rose-200 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+            >
+              Mis cartas
+            </Link>
           </div>
 
           <AdBanner />
