@@ -252,17 +252,23 @@ function QuestionStage({
     });
   }
 
-  const yesScale = 1 + (escapes / MAX_ESCAPES) * 9;
+  const progress = escapes / MAX_ESCAPES;
+  const yesScale = 1 + progress * 9;
+  // El "Sí" arranca junto al "No" y se va recentrando en la pantalla a
+  // medida que crece, para que al llegar al tamaño máximo quede
+  // perfectamente centrado en vez de gigante pero descuadrado.
+  const yesTop = 56 + (50 - 56) * progress;
+  const yesLeft = 42 + (50 - 42) * progress;
 
   return (
     <div className="relative z-10 min-h-[100dvh] overflow-hidden px-4">
       <div
-        className="absolute left-1/2 top-[18%] w-full max-w-md -translate-x-1/2 space-y-3 px-4 text-center transition-opacity duration-500"
+        className="absolute left-1/2 top-[18%] w-full max-w-md -translate-x-1/2 rounded-2xl bg-white/95 px-6 py-8 text-center shadow-xl backdrop-blur transition-opacity duration-500"
         style={{ opacity: finished ? 0 : 1 }}
       >
         <span className="block text-4xl">💘</span>
         <h2
-          className="text-3xl"
+          className="mt-2 text-3xl"
           style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
         >
           {title}
@@ -271,11 +277,11 @@ function QuestionStage({
 
       <button
         onClick={onDone}
-        className="fixed z-20 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-transform duration-500 ease-out"
+        className="fixed z-20 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-all duration-500 ease-out"
         style={{
           background: theme.accent,
-          top: "56%",
-          left: "42%",
+          top: `${yesTop}%`,
+          left: `${yesLeft}%`,
           transform: `translate(-50%, -50%) scale(${yesScale})`,
         }}
       >
