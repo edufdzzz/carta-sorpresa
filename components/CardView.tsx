@@ -1,162 +1,386 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import type { Card } from "@/lib/types";
-
-type Stage = "intro" | "envelope" | "letter";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Card, CardSlide, CardTheme } from "@/lib/types";
 
 type CardViewProps = {
   data: Pick<
     Card,
-    "title" | "intro_message" | "letter_message" | "theme" | "photos"
+    | "intro_slides"
+    | "question_title"
+    | "question_yes_label"
+    | "question_no_label"
+    | "final_title"
+    | "final_message"
+    | "final_closing"
+    | "theme"
+    | "photos"
   >;
 };
 
 const FLOATING_HEARTS = Array.from({ length: 10 }, (_, i) => i);
+const CONFETTI = Array.from({ length: 24 }, (_, i) => i);
+const CONFETTI_COLORS = ["#f43f5e", "#fbbf24", "#34d399", "#60a5fa", "#f472b6"];
+const MAX_ESCAPES = 6;
 
-// Los tres "paneles" quedan siempre montados, superpuestos en la misma
-// celda de grid, y se hace un crossfade con la etapa activa usando
-// transiciones CSS nativas (más confiable entre navegadores que animar
-// vía JS cada vez que cambia el prop `active`).
-function StagePanel({
-  active,
-  className,
-  children,
-}: {
-  active: boolean;
-  className?: string;
-  children: React.ReactNode;
-}) {
+// Generador pseudo-aleatorio determinista (misma semilla -> mismo resultado),
+// para que las fotos y el confeti no salten de lugar en cada re-render.
+function seededRandom(seed: number) {
+  const x = Math.sin(seed * 999) * 10000;
+  return x - Math.floor(x);
+}
+
+export default function CardView({ data }: CardViewProps) {
+  const {
+    intro_slides,
+    question_title,
+    question_yes_label,
+    question_no_label,
+    final_title,
+    final_message,
+    final_closing,
+    theme,
+    photos,
+  } = data;
+
+  const slides = intro_slides.length > 0 ? intro_slides : [{ title: "Para ti", message: "" }];
+  const totalSlides = slides.length;
+
+  // -1 = sobre, 0..totalSlides-1 = pantallas de mensaje,
+  // totalSlides = pregunta, totalSlides+1 = carta final
+  const [stage, setStage] = useState(-1);
+  const [opening, setOpening] = useState(false);
+
+  function openEnvelope() {
+    setOpening(true);
+    window.setTimeout(() => setStage(0), 700);
+  }
+
   return (
     <div
-      className={`col-start-1 row-start-1 transition-all duration-400 ease-out ${className ?? ""}`}
-      style={{
-        pointerEvents: active ? "auto" : "none",
-        opacity: active ? 1 : 0,
-        transform: active ? "translateY(0)" : "translateY(16px)",
-      }}
-      aria-hidden={!active}
+      className="relative min-h-[100dvh] w-full overflow-hidden"
+      style={{ background: theme.background, color: theme.text }}
     >
-      {children}
+      <FloatingHearts accent={theme.accent} />
+
+      {stage === -1 && (
+        <EnvelopeStage opening={opening} onOpen={openEnvelope} accent={theme.accent} />
+      )}
+
+      {stage >= 0 && stage < totalSlides && (
+        <SlideStage
+          key={stage}
+          slide={slides[stage]}
+          theme={theme}
+          onNext={() => setStage((s) => s + 1)}
+        />
+      )}
+
+      {stage === totalSlides && (
+        <QuestionStage
+          title={question_title}
+          yesLabel={question_yes_label}
+          noLabel={question_no_label}
+          theme={theme}
+          onDone={() => setStage(totalSlides + 1)}
+        />
+      )}
+
+      {stage === totalSlides + 1 && (
+        <FinalStage
+          title={final_title}
+          message={final_message}
+          closing={final_closing}
+          photos={photos}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }
 
-export default function CardView({ data }: CardViewProps) {
-  const [stage, setStage] = useState<Stage>("intro");
-  const { title, intro_message, letter_message, theme, photos } = data;
+function FloatingHearts({ accent }: { accent: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {FLOATING_HEARTS.map((i) => (
+        <span
+          key={i}
+          className="absolute bottom-0 text-2xl select-none"
+          style={{
+            left: `${(i * 97) % 100}%`,
+            color: accent,
+            animation: `float-heart ${8 + (i % 5)}s linear ${i * 0.8}s infinite`,
+          }}
+        >
+          ❤
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function EnvelopeStage({
+  opening,
+  onOpen,
+  accent,
+}: {
+  opening: boolean;
+  onOpen: () => void;
+  accent: string;
+}) {
+  return (
+    <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center gap-6 px-4">
+      <div className="relative h-36 w-52">
+        <div
+          className="absolute inset-x-0 bottom-0 h-full rounded-lg shadow-lg transition-opacity duration-500"
+          style={{ background: accent, opacity: opening ? 0.15 : 0.3 }}
+        />
+        <div
+          className="absolute left-1/2 top-1/2 flex h-16 w-40 -translate-x-1/2 items-center justify-center rounded bg-white text-3xl shadow transition-all duration-700 ease-out"
+          style={{
+            transform: opening
+              ? "translate(-50%, -160%) scale(1.05)"
+              : "translate(-50%, -50%) scale(1)",
+            opacity: opening ? 0 : 1,
+          }}
+        >
+          💌
+        </div>
+      </div>
+      {!opening && (
+        <button
+          onClick={onOpen}
+          className="rounded-full px-6 py-3 font-medium text-white shadow-md transition hover:scale-105"
+          style={{ background: accent }}
+        >
+          Abrir carta 💌
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SlideStage({
+  slide,
+  theme,
+  onNext,
+}: {
+  slide: CardSlide;
+  theme: CardTheme;
+  onNext: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   return (
-    <div
-      className="relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-4 py-10"
-      style={{ background: theme.background, color: theme.text }}
-    >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {FLOATING_HEARTS.map((i) => (
-          <motion.span
-            key={i}
-            className="absolute text-2xl select-none"
-            style={{
-              left: `${(i * 97) % 100}%`,
-              color: theme.accent,
-              opacity: 0.35,
-            }}
-            initial={{ y: "110%", opacity: 0 }}
-            animate={{ y: "-20%", opacity: [0, 0.5, 0] }}
-            transition={{
-              duration: 8 + (i % 5),
-              repeat: Infinity,
-              delay: i * 0.8,
-              ease: "linear",
-            }}
+    <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-4">
+      <div
+        className="max-w-md space-y-5 text-center transition-all duration-500"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+        }}
+      >
+        {slide.title && (
+          <h1
+            className="text-4xl"
+            style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
           >
-            ❤
-          </motion.span>
+            {slide.title}
+          </h1>
+        )}
+        {slide.message && (
+          <p className="whitespace-pre-line leading-relaxed">{slide.message}</p>
+        )}
+        <button
+          onClick={onNext}
+          className="rounded-full px-6 py-3 font-medium text-white shadow-md transition hover:scale-105"
+          style={{ background: theme.accent }}
+        >
+          Siguiente ✨
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QuestionStage({
+  title,
+  yesLabel,
+  noLabel,
+  theme,
+  onDone,
+}: {
+  title: string;
+  yesLabel: string;
+  noLabel: string;
+  theme: CardTheme;
+  onDone: () => void;
+}) {
+  const [escapes, setEscapes] = useState(0);
+  const [noPos, setNoPos] = useState({ top: 62, left: 66 });
+  const [finished, setFinished] = useState(false);
+  const triggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (escapes >= MAX_ESCAPES && !triggeredRef.current) {
+      triggeredRef.current = true;
+      setFinished(true);
+      const t = window.setTimeout(onDone, 900);
+      return () => window.clearTimeout(t);
+    }
+  }, [escapes, onDone]);
+
+  function evadeNo() {
+    if (finished) return;
+    setEscapes((e) => Math.min(e + 1, MAX_ESCAPES));
+    setNoPos({
+      top: 12 + seededRandom(escapes * 7 + 1) * 74,
+      left: 10 + seededRandom(escapes * 13 + 3) * 76,
+    });
+  }
+
+  const yesScale = 1 + (escapes / MAX_ESCAPES) * 9;
+
+  return (
+    <div className="relative z-10 min-h-[100dvh] overflow-hidden px-4">
+      <h2
+        className="absolute left-1/2 top-[14%] w-full max-w-md -translate-x-1/2 px-4 text-center text-3xl transition-opacity duration-500"
+        style={{
+          fontFamily: "var(--font-cursive)",
+          color: theme.accent,
+          opacity: finished ? 0 : 1,
+        }}
+      >
+        {title}
+      </h2>
+
+      <button
+        onClick={onDone}
+        className="fixed z-20 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-transform duration-500 ease-out"
+        style={{
+          background: theme.accent,
+          top: "58%",
+          left: "50%",
+          transform: `translate(-50%, -50%) scale(${yesScale})`,
+        }}
+      >
+        {yesLabel}
+      </button>
+
+      {!finished && (
+        <button
+          onMouseEnter={evadeNo}
+          onTouchStart={evadeNo}
+          onClick={evadeNo}
+          className="fixed z-20 rounded-full bg-white px-5 py-2.5 font-medium text-neutral-500 shadow transition-all duration-300 ease-out"
+          style={{
+            top: `${noPos.top}%`,
+            left: `${noPos.left}%`,
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          {noLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FinalStage({
+  title,
+  message,
+  closing,
+  photos,
+  theme,
+}: {
+  title: string;
+  message: string;
+  closing: string;
+  photos: { url: string; caption: string }[];
+  theme: CardTheme;
+}) {
+  const layout = useMemo(
+    () =>
+      photos.map((_, i) => ({
+        top: 4 + seededRandom(i * 3.1 + 1) * 82,
+        left: 2 + seededRandom(i * 5.7 + 2) * 84,
+        rotate: (seededRandom(i * 2.3 + 3) - 0.5) * 40,
+      })),
+    [photos]
+  );
+
+  return (
+    <div className="relative min-h-[100dvh] px-4 py-10">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {CONFETTI.map((i) => (
+          <span
+            key={i}
+            className="absolute top-[-5%] h-2 w-2 rounded-sm opacity-70"
+            style={{
+              left: `${(i * 41) % 100}%`,
+              background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+              animation: `confetti-fall ${4 + (i % 5)}s linear ${i * 0.3}s infinite`,
+            }}
+          />
         ))}
       </div>
 
-      <div className="relative z-10 grid w-full max-w-3xl place-items-center">
-        <StagePanel
-          active={stage === "intro"}
-          className="max-w-md text-center space-y-6"
+      {photos.map((photo, i) => (
+        <figure
+          key={photo.url + i}
+          className="absolute w-28 bg-white p-1.5 pb-4 shadow-lg sm:w-36"
+          style={{
+            top: `${layout[i].top}%`,
+            left: `${layout[i].left}%`,
+            transform: `rotate(${layout[i].rotate}deg)`,
+          }}
         >
-          <h1 className="text-3xl font-semibold">{title || "Para ti"}</h1>
-          <p className="whitespace-pre-line leading-relaxed">
-            {intro_message}
-          </p>
-          <button
-            onClick={() => setStage("envelope")}
-            className="rounded-full px-6 py-3 font-medium shadow-md transition hover:scale-105"
-            style={{ background: theme.accent, color: "#fff" }}
-          >
-            Siguiente ✨
-          </button>
-        </StagePanel>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo.url}
+            alt={photo.caption || "Foto"}
+            className="h-24 w-full object-cover sm:h-32"
+          />
+          {photo.caption && (
+            <figcaption className="mt-1 text-center text-[10px] text-neutral-600">
+              {photo.caption}
+            </figcaption>
+          )}
+        </figure>
+      ))}
 
-        <StagePanel
-          active={stage === "envelope"}
-          className="flex flex-col items-center gap-6"
-        >
-          <motion.button
-            onClick={() => setStage("letter")}
-            className="text-6xl"
-            animate={
-              stage === "envelope" ? { rotate: [0, -4, 4, -4, 0] } : {}
-            }
-            transition={{ duration: 1.6, repeat: Infinity }}
-            aria-label="Abrir carta"
-          >
-            💌
-          </motion.button>
-          <button
-            onClick={() => setStage("letter")}
-            className="rounded-full px-6 py-3 font-medium shadow-md transition hover:scale-105"
-            style={{ background: theme.accent, color: "#fff" }}
-          >
-            Abrir carta 💌
-          </button>
-        </StagePanel>
-
-        <StagePanel active={stage === "letter"} className="w-full">
-          <div
-            className="relative rounded-2xl bg-white/90 backdrop-blur px-6 py-10 sm:px-12 sm:py-14 shadow-xl"
-            style={{ color: theme.text }}
-          >
-            <h2 className="text-2xl font-semibold text-center mb-6">
-              {title || "Para ti"}
+      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-5rem)] max-w-md flex-col items-center justify-center text-center">
+        <div className="rounded-2xl bg-white/90 px-6 py-8 shadow-xl backdrop-blur sm:px-10">
+          {title && (
+            <h2
+              className="text-3xl"
+              style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
+            >
+              {title}
             </h2>
-            <p className="whitespace-pre-line leading-relaxed text-center">
-              {letter_message}
+          )}
+          {message && (
+            <p
+              className="mt-4 whitespace-pre-line leading-relaxed"
+              style={{ color: theme.text }}
+            >
+              {message}
             </p>
-
-            {photos.length > 0 && (
-              <div className="mt-10 flex flex-wrap justify-center gap-6">
-                {photos.map((photo, i) => (
-                  <figure
-                    key={photo.url + i}
-                    className="bg-white p-2 pb-6 shadow-lg w-36 sm:w-44"
-                    style={{
-                      rotate: `${(i % 2 === 0 ? -1 : 1) * (4 + (i % 3) * 3)}deg`,
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.url}
-                      alt={photo.caption || "Foto"}
-                      className="w-full h-32 sm:h-40 object-cover"
-                    />
-                    {photo.caption && (
-                      <figcaption className="mt-2 text-center text-xs text-neutral-600">
-                        {photo.caption}
-                      </figcaption>
-                    )}
-                  </figure>
-                ))}
-              </div>
-            )}
-          </div>
-        </StagePanel>
+          )}
+          {closing && (
+            <p
+              className="mt-5 text-3xl"
+              style={{ fontFamily: "var(--font-cursive)", color: theme.accent }}
+            >
+              {closing}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
